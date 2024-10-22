@@ -29,6 +29,24 @@ def login():
         return jsonify({"message": "Login successful"}), 200
     else:
         return jsonify({"message": "Invalid credentials"}), 401
+    
+# allow new users to register accounts
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+
+    # check if username and password are non-empty
+    if not username or not password: 
+        return jsonify({"message": "Username and password are both required"}), 400
+    
+    # check if user already exists
+    if username in users:
+        return jsonify({"message": "User already exists"}), 409
+    
+    users[username] = password
+    return jsonify({"message": "User registered successfully"}), 201
 
 if __name__ == '__main__':
     app.run(debug=True)

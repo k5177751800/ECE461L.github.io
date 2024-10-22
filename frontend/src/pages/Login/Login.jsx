@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e, action) => {
         e.preventDefault();
+        const url = action === 'login' ? 'http://localhost:5000/login' : 'http://localhost:5000/register';
 
         try {
             // Send the login request to Flask
-            const response = await fetch('http://localhost:5000/login', {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -35,8 +36,8 @@ function Login() {
 
     return (
         <div>
-            <h2>Login</h2>
-            <form onSubmit={handleSubmit}>
+            <h2>Sign in</h2>
+            <form onSubmit={(e) => handleSubmit(e, 'login')}>
                 <label>
                     Username:
                     <input 
@@ -55,9 +56,11 @@ function Login() {
                     />
                 </label>
                 <br />
-                <button type="submit">Login</button>
+                <button type="submit" onClick={(e) => handleSubmit(e, 'login')}>Login</button>
+                <button type="button" onClick={(e) => handleSubmit(e, 'register')}>Register</button>
             </form>
             {message && <p>{message}</p>}
+            
         </div>
     );
 }
