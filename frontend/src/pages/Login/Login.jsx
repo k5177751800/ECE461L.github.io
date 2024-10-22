@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
+    const navigate = useNavigate();
 
     const handleSubmit = async (e, action) => {
         e.preventDefault();
@@ -26,6 +28,8 @@ function Login() {
 
             if (response.ok) {
                 setMessage(data.message);  // Login success message
+                navigate('/home');
+                
             } else {
                 setMessage(data.message);  // Error message
             }
