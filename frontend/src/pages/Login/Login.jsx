@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, TextField, Button, Box, Avatar, CssBaseline, Typography } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import { useAuth } from '../../AuthContext';
 
 function Login() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
     const navigate = useNavigate();
+    const { setAuth } = useAuth();
 
     const handleSubmit = async (e, action) => {
         e.preventDefault();
@@ -28,10 +30,15 @@ function Login() {
 
             const data = await response.json();
 
-            if (response.ok) {
+            if (data.token) {
                 setMessage(data.message);  // Login success message
+
+                // Store token and set authentication state
+                localStorage.setItem('token', data.token);
+                setAuth({ username });
+
+                // Navigate to home page 
                 navigate('/home');
-                
             } else {
                 setMessage(data.message);  // Error message
             }
@@ -45,10 +52,10 @@ function Login() {
             <CssBaseline />
             <Box
                 sx={{
-                marginTop: 8,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
+                    marginTop: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
                 }}
             >
                 <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
