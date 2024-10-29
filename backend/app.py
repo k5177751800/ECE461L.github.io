@@ -10,7 +10,8 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
+
 app.config['JWT_SECRET_KEY'] = 'secret' # key for JWT
 app.config["MONGO_URI"] = "mongodb://localhost:27017/myDatabase" # MongoDB Connection
 
@@ -27,6 +28,25 @@ users_collection = db['Users']
 
 # Initialize JWT
 jwt = JWTManager(app)
+
+@app.before_request
+def handle_options_requests():
+    if request.method == 'OPTIONS':
+        return jsonify({"message": "CORS preflight success"}), 200
+
+
+# Assuming `db` is your MongoDB instance from PyMongo
+hardware_sets_collection = db['HardwareSets']
+
+# Initialize with some sample hardware sets (run once, then remove or comment out)
+if hardware_sets_collection.count_documents({}) == 0:
+    hardware_sets_collection.insert_many([
+        {"name": "HWSet1", "available": 100, "capacity": 100},
+        {"name": "HWSet2", "available": 100, "capacity": 100},
+        {"name": "HWSet3", "available": 100, "capacity": 100}
+    ])
+
+
 
 @app.route('/')
 def index():
@@ -94,6 +114,64 @@ def register():
     except Exception as e:
         return jsonify({"message": "Registration failed", "error": str(e)}), 500
 
+
+@app.route('/hardware/checkin', methods=['POST'])
+def check_in():
+    data = request.json
+    hwset_name = data.get('name')
+    amount = data.get('amount')
+
+    if hwset_name and amount:
+        # Find and update hardware set quantity
+        result = db.HardwareSets.find_one_and_update(
+            {"name": hwset_name},
+            {"$inc": {"available": amount}},
+            return_document=True
+        )
+        if result:
+            return jsonify({"message": "Check-in successful", "available": result["available"]}), 200
+    return jsonify({"message": "Check-in failed"}), 400
+
+
+@app.route('/hardware/checkout', methods=['POST', 'OPTIONS'])
+def check_out():
+    if request.method == 'OPTIONS':
+        # Send appropriate headers in the response to pass the preflight check
+        response = jsonify({"message": "CORS preflight success"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        return response, 200
+
+    # Handle the POST request
+    data = request.json
+    hwset_name = data.get('name')
+    amount = data.get('amount')
+
+    if hwset_name and amount:
+        # Ensure enough quantity is available
+        result = db.HardwareSets.find_one_and_update(
+            {"name": hwset_name, "available": {"$gte": amount}},
+            {"$inc": {"available": -amount}},
+            return_document=True
+        )
+        if result:
+            return jsonify({"message": "Check-out successful", "available": result["available"]}), 200
+    return jsonify({"message": "Check-out failed"}), 400
+
+@app.route('/hardware', methods=['GET'])
+def get_hardware_sets():
+    try:
+        hardware_sets = list(hardware_sets_collection.find({}, {"_id": 0}))  # Exclude MongoDB ID
+        return jsonify({"hardwareSets": hardware_sets}), 200
+    except Exception as e:
+        print(f"Error retrieving hardware sets: {e}")
+        return jsonify({"hardwareSets": [], "error": "Failed to retrieve hardware sets"}), 500
+
+
+
+
+
 # protected route for user info
 @app.route('/home/user', methods=['GET'])
 @jwt_required()
@@ -110,3 +188,5 @@ def get_user():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+

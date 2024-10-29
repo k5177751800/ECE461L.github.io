@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, TextField } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Table from '@mui/material/Table';
@@ -109,22 +109,65 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
     );
 }
 
-function HWTable() {
+function HWTable() { 
     const [hardwareSets, setHardwareSets] = useState(rows);
+    // Retrieve the token from local storage or AuthContext if available
+
+    useEffect(() => {
+      
+        fetch('http://localhost:5000/hardware', {
+            headers: {
+            
+                'Content-Type': 'application/json',
+            },
+        })
+          .then((response) => {
+            if (!response.ok) throw new Error('Network response was not OK');
+            return response.json();
+          })
+          .then((data) => setHardwareSets(data.hardwareSets))
+          .catch((error) => console.error('Error fetching hardware sets:', error));
+    }, []);
+    
+    
 
     const handleCheckIn = (name, amount) => {
-        setHardwareSets(prevSets => prevSets.map(set => 
-            set.name === name ? 
-            {...set, available: Math.min(set.capacity, set.available + amount)} : set
-        ));
-    };
+        fetch('http://localhost:5000/hardware/checkin', {
+          method: 'POST',
+          headers: { 
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, amount }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            setHardwareSets((prevSets) =>
+              prevSets.map((set) =>
+                set.name === name ? { ...set, available: data.available } : set
+              )
+            );
+          })
+          .catch((error) => console.error('Check-in error:', error));
+      };
 
     const handleCheckOut = (name, amount) => {
-        setHardwareSets(prevSets => prevSets.map(set => 
-            set.name === name ? 
-            {...set, available: Math.max(0, set.available - amount)} : set
-        ));
-    };
+        fetch('http://localhost:5000/hardware/checkout', {
+          method: 'POST',
+          headers: { 
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, amount }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            setHardwareSets((prevSets) =>
+              prevSets.map((set) =>
+                set.name === name ? { ...set, available: data.available } : set
+              )
+            );
+          })
+          .catch((error) => console.error('Check-out error:', error));
+      };
 
     return (
         <TableContainer component={Paper}>
