@@ -1,34 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button, TextField } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { StyledTableCell, StyledTableRow } from './Home';
+import TableContainer from '@mui/material/TableContainer';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
-import TableCell, { tableCellClasses } from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-
-// Styled table code taken from https://mui.com/material-ui/react-table/
-
-const StyledTableCell = styled(TableCell)(({ theme }) => ({
-    [`&.${tableCellClasses.head}`]: {
-      backgroundColor: theme.palette.common.black,
-      color: theme.palette.common.white,
-    },
-    [`&.${tableCellClasses.body}`]: {
-      fontSize: 14,
-    },
-}));
-
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
-'&:nth-of-type(odd)': {
-    backgroundColor: theme.palette.action.hover,
-},
-// hide last border
-'&:last-child td, &:last-child th': {
-    border: 0,
-},
-}));
 
 function createData(name, available, capacity) {
     return { name, available, capacity };
@@ -61,10 +37,10 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
     const handleCheckOut = (e) => {
         e.preventDefault();
         const amount = parseInt(inputAmount);
-        if (!isNaN(amount) && amount > 0) {
+        if (!isNaN(amount) && amount > 0 && amount <= row.available) {
             onCheckOut(row.name, amount);
             setInputAmount('');
-        }
+        }   
     }
 
     return (
@@ -101,6 +77,7 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
                     color="secondary"
                     size="small"
                     onClick={handleCheckIn}
+                    disabled={!inputAmount || inputAmount <= 0 || row.available + parseInt(inputAmount) > row.capacity}
                 >
                     Check In
                 </Button>
@@ -139,13 +116,19 @@ function HWTable() {
           },
           body: JSON.stringify({ name, amount }),
         })
-          .then((response) => response.json())
+          .then((response) => {
+            if (!response.ok) {
+                throw new Error('Check-in failed');
+            }
+            return response.json();
+          })
           .then((data) => {
             setHardwareSets((prevSets) =>
               prevSets.map((set) =>
                 set.name === name ? { ...set, available: data.available } : set
               )
             );
+            console.log(data);
           })
           .catch((error) => console.error('Check-in error:', error));
       };
@@ -158,7 +141,12 @@ function HWTable() {
           },
           body: JSON.stringify({ name, amount }),
         })
-          .then((response) => response.json())
+          .then((response) => {
+            if (!response.ok) {
+                throw new Error('Check-in failed');
+            }
+            return response.json();
+          })
           .then((data) => {
             setHardwareSets((prevSets) =>
               prevSets.map((set) =>

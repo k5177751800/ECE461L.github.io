@@ -120,12 +120,19 @@ def check_in():
     data = request.json
     hwset_name = data.get('name')
     amount = data.get('amount')
+    hw_set = db['HardwareSets'].find_one({"name": hwset_name})
 
     if hwset_name and amount:
         # Find and update hardware set quantity
+        current_available = hw_set["available"]
+        max_capacity = hw_set["capacity"]
+
+        # calculate new available amount, making sure to not exceed capacity
+        new_available = min(current_available + amount, max_capacity)
+
         result = db.HardwareSets.find_one_and_update(
             {"name": hwset_name},
-            {"$inc": {"available": amount}},
+            {"$set": {"available": new_available}},
             return_document=True
         )
         if result:
@@ -167,10 +174,6 @@ def get_hardware_sets():
     except Exception as e:
         print(f"Error retrieving hardware sets: {e}")
         return jsonify({"hardwareSets": [], "error": "Failed to retrieve hardware sets"}), 500
-
-
-
-
 
 # protected route for user info
 @app.route('/home/user', methods=['GET'])
