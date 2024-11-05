@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../AuthContext';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
 import TableCell, { tableCellClasses } from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
 import TableRow from '@mui/material/TableRow';
 import { styled } from '@mui/material/styles';
+import { Stack } from '@mui/material';
 import HWTable from './HWTable';
+import ProjectTable from './Projects';
 
 // Styled table code taken from https://mui.com/material-ui/react-table/
 
@@ -34,6 +33,25 @@ function Home() {
     const { auth } = useAuth();
     const [userInfo, setUserInfo] = useState(null);
 
+    function createProjectRow(name, description, id, users) {
+        return { name, description, id, users };
+    }
+    
+    const [projects, setProjects] = useState([
+        createProjectRow('Project 1', 'Project 1 Description', 1, 'dummyuser1'),
+        createProjectRow('Project 2', 'Project 2 Description', 2, 'dummyuser1')
+    ]);
+    
+    const addNewProject = () => {
+        const newProject = createProjectRow(
+            'New Project',
+            'New project description',
+            'Temp ID',
+            'dummyuser'
+        );
+        setProjects([...projects, newProject]);
+    }
+
     useEffect(() => {
         const fetchUserInfo = async () => {
             const token = localStorage.getItem('username');
@@ -54,7 +72,12 @@ function Home() {
         <div>
             <h2>Welcome, {auth?.username}!</h2>
             <p> You have successfully logged in.</p>
-            <HWTable />
+            <Stack spacing={2} direction="row">
+                <ProjectTable 
+                projects={projects}
+                onAddProject={addNewProject}/>
+                <HWTable />
+            </Stack>
         </div>
     );
 }
