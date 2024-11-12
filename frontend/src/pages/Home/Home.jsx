@@ -3,7 +3,7 @@ import { useAuth } from '../../AuthContext';
 import TableCell, { tableCellClasses } from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import { styled } from '@mui/material/styles';
-import { Stack } from '@mui/material';
+import { Stack, Select, MenuItem, Button } from '@mui/material';
 import HWTable from './HWTable';
 import ProjectTable from './Projects';
 
@@ -82,8 +82,6 @@ function Home() {
         return <div>Please log in to use this page.</div>
     }
 
-    // const MemoizedProjectTable = React.memo(ProjectTable);
-
     return (
         <div>
             <h2>Welcome, {auth?.username}!</h2>
@@ -97,7 +95,9 @@ function Home() {
                     user={auth?.username} 
                     projects={projects} 
                     updateProjects={updateProjects}/>
-                <HWTable />
+                <HWTable 
+                    user={auth?.username}
+                    projects={projects} />
             </Stack>
         </div>
     );

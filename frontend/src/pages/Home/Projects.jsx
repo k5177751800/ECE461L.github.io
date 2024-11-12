@@ -7,7 +7,7 @@ import TableBody from '@mui/material/TableBody';
 import TableHead from '@mui/material/TableHead';
 import Paper from '@mui/material/Paper';
 
-const MemberButton = React.memo(({ projectId, joined, user, onToggle }) => {
+const MemberButton = React.memo(({ projectId, joined, onToggle }) => {
     const [isMember, setIsMember] = useState(joined);
 
     const handleMemberToggle = async () => {
@@ -47,7 +47,7 @@ const ProjectRow = React.memo(({ row, user, onToggle }) => {
                 {row.description || 'N/A'}
             </StyledTableCell>
             <StyledTableCell align="center">
-                <MemberButton projectId={row.id} joined={row.joined} user={user} onToggle={onToggle} />
+                <MemberButton projectId={row.id} joined={row.joined} onToggle={onToggle} />
             </StyledTableCell>
         </StyledTableRow>
     );

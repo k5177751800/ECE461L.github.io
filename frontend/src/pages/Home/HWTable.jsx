@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Button, FormControl, InputLabel, TextField, Typography, Select } from '@mui/material';
+import { Button, FormControl, InputLabel, TextField, Typography, Select, MenuItem } from '@mui/material';
 import { StyledTableCell, StyledTableRow } from './Home';
 import TableContainer from '@mui/material/TableContainer';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import Paper from '@mui/material/Paper';
 
-const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
+const HWTableRow = ({ row, onCheckIn, onCheckOut, projects }) => {
     const [inputAmount, setInputAmount] = useState('');
+    const [selectedProject, setSelectedProject] = useState('');
 
     const handleInputChange = (e) => {
         setInputAmount(e.target.value);
@@ -18,7 +19,7 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
         e.preventDefault();
         const amount = parseInt(inputAmount);
         if (!isNaN(amount) && amount > 0) {
-            onCheckIn(row.name, amount);
+            onCheckIn(row.name, amount, selectedProject);
             setInputAmount('');
         }
     };
@@ -28,13 +29,13 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
         e.preventDefault();
         const amount = parseInt(inputAmount);
         if (!isNaN(amount) && amount > 0 && amount <= row.available) {
-            onCheckOut(row.name, amount);
+            onCheckOut(row.name, amount, selectedProject);
             setInputAmount('');
         }   
     }
 
-    const selectProject = (e) => {
-
+    const handleProjectChange = (e) => {
+        setSelectedProject(e.target.value);
     }
 
     return (
@@ -58,8 +59,13 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
             <StyledTableCell>
                 <FormControl variant="standard" sx={{ m: 1, minWidth: 120 }}>
                     <InputLabel>Select Project</InputLabel>
-                    <Select>
-
+                    <Select
+                        value={selectedProject}
+                        onChange={handleProjectChange}
+                    >
+                        {projects.map((project) => (
+                            <MenuItem key={project.id} value={project.id}>{project.id}</MenuItem>
+                        ))}
                     </Select>
                 </FormControl>
             </StyledTableCell>
@@ -90,10 +96,9 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
     );
 }
 
-function HWTable() { 
+function HWTable({ projects, user }) { 
     const [hardwareSets, setHardwareSets] = useState(null);
-    // Retrieve the token from local storage or AuthContext if available
-
+    
     useEffect(() => {
         fetch('http://localhost:5000/hardware', {
             headers: {
@@ -108,7 +113,7 @@ function HWTable() {
           .catch((error) => console.error('Error fetching hardware sets:', error));
     }, []);
 
-    const handleCheckIn = (name, amount) => {
+    const handleCheckIn = (name, amount, projectId) => {
         fetch('http://localhost:5000/hardware/checkin', {
           method: 'POST',
           headers: { 
@@ -133,7 +138,7 @@ function HWTable() {
           .catch((error) => console.error('Check-in error:', error));
       };
 
-    const handleCheckOut = (name, amount) => {
+    const handleCheckOut = (name, amount, projectId) => {
         fetch('http://localhost:5000/hardware/checkout', {
           method: 'POST',
           headers: { 
@@ -157,10 +162,6 @@ function HWTable() {
           .catch((error) => console.error('Check-out error:', error));
       };
 
-    const handleProjectSelect = (hwId, projectId) => {
-        
-    }
-
     return (
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 700 }} aria-label="customized table">
@@ -172,6 +173,7 @@ function HWTable() {
                         row={row}
                         onCheckOut={handleCheckOut}
                         onCheckIn={handleCheckIn}
+                        projects={projects}
                     />
                 ))) : (
                     <Typography>No hardware sets available</Typography>
