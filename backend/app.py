@@ -37,14 +37,15 @@ def handle_options_requests():
 
 # Assuming `db` is your MongoDB instance from PyMongo
 hardware_sets_collection = db['HardwareSets']
+projects_collection = db['Projects']
 
 # Initialize with some sample hardware sets (run once, then remove or comment out)
-if hardware_sets_collection.count_documents({}) == 0:
-    hardware_sets_collection.insert_many([
-        {"name": "HWSet1", "available": 100, "capacity": 100},
-        {"name": "HWSet2", "available": 100, "capacity": 100},
-        {"name": "HWSet3", "available": 100, "capacity": 100}
-    ])
+# if hardware_sets_collection.count_documents({}) == 0:
+#     hardware_sets_collection.insert_many([
+#         {"name": "HWSet1", "available": 100, "capacity": 100},
+#         {"name": "HWSet2", "available": 100, "capacity": 100},
+#         {"name": "HWSet3", "available": 100, "capacity": 100}
+#     ])
 
 
 
@@ -105,7 +106,8 @@ def register():
     # Create new user
     new_user = {
         "username": username,
-        "password": generate_password_hash(password)
+        "password": generate_password_hash(password),
+        "num_projects": 0
     }
 
     try:
@@ -166,6 +168,7 @@ def check_out():
             return jsonify({"message": "Check-out successful", "available": result["available"]}), 200
     return jsonify({"message": "Check-out failed"}), 400
 
+# retrieve hardware set from database
 @app.route('/hardware', methods=['GET'])
 def get_hardware_sets():
     try:
@@ -174,20 +177,72 @@ def get_hardware_sets():
     except Exception as e:
         print(f"Error retrieving hardware sets: {e}")
         return jsonify({"hardwareSets": [], "error": "Failed to retrieve hardware sets"}), 500
+    
+# retrieve projects from database
+@app.route('/projects/<string:user_id>', methods=['GET'])
+def get_projects(user_id):
+    try:
+        projects = list(projects_collection.find({"user": user_id}, {"_id": 0} ))
+        return jsonify({"projects": projects}), 200
+    except Exception as e:
+        print(f"Error retrieving projects: {e}")
+        return jsonify({"projects": [], "error": "Failed to retrieve projects"}), 500
+    
+@app.route('/projects/addproject', methods=['POST'])
+def add_project():
+    data = request.json
+    project_name = data.get("name") or "New project"
+    description = data.get("description") or "Default Description"
+    user = data.get("user")
+
+    try:
+        curr_numprojects = users_collection.find_one({"username": user})['num_projects']
+
+        new_project = {
+            "name": project_name,
+            "user": user,
+            "description": description,
+            "hardware": {},
+            "id": f"{user}_{curr_numprojects + 1}",
+            "joined": False
+        }
+
+        result = projects_collection.insert_one(new_project)
+        if not result.acknowledged:
+            raise Exception("Failed to insert project")
+        
+        users_collection.update_one(
+            {"username": user},
+            {"$set": {"num_projects": curr_numprojects + 1}}
+        )
+        projects = list(projects_collection.find({"user": user}, {"_id": 0} ))
+
+        return jsonify({"projects": projects}), 200
+    except Exception as e:
+        print(f"Error updating projects: {e}")
+        return jsonify({"projects": [], "error": "Failed to update projects"}), 500
 
 # protected route for user info
 @app.route('/home/user', methods=['GET'])
 @jwt_required()
 def get_user():
-    current_user_id = get_jwt_identity()
-    user = users_collection.find_one({"_id": ObjectId(current_user_id)})
-    
-    if user:
-        return jsonify({
-            "username": user['username']
-        }), 200
-    
-    return jsonify({"message": "User not found"}), 200
+    try:
+        current_user_id = get_jwt_identity()
+
+        if not ObjectId.is_valid(current_user_id):
+            return jsonify({"message": "Invalid user ID"}), 400
+        
+        user = users_collection.find_one({"_id": ObjectId(current_user_id)})
+        
+        if user:
+            return jsonify({
+                "username": user['username']
+            }), 200
+        
+        return jsonify({"message": "User not found"}), 404
+    except Exception as e:
+        print(f'Error in get_user: {str(e)}')
+        return jsonify({"message": "An error occurred"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

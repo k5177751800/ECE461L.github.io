@@ -30,52 +30,47 @@ export const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }));
 
 function Home() {
-    const { auth } = useAuth();
+    const { auth, setAuth } = useAuth();
     const [userInfo, setUserInfo] = useState(null);
-
-    function createProjectRow(name, description, id, users) {
-        return { name, description, id, users };
-    }
-    
-    const [projects, setProjects] = useState([
-        createProjectRow('Project 1', 'Project 1 Description', 1, 'dummyuser1'),
-        createProjectRow('Project 2', 'Project 2 Description', 2, 'dummyuser1')
-    ]);
-    
-    const addNewProject = () => {
-        const newProject = createProjectRow(
-            'New Project',
-            'New project description',
-            'Temp ID',
-            'dummyuser'
-        );
-        setProjects([...projects, newProject]);
-    }
 
     useEffect(() => {
         const fetchUserInfo = async () => {
-            const token = localStorage.getItem('username');
-            const response = await fetch('http://localhost:5000/home/user', {
-                headers: { 'Authorization': 'Bearer ${token}' },
-            });
-            const data = await response.json();
-            setUserInfo(data);
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://localhost:5000/home/user', {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        setAuth(null);
+                        localStorage.removeItem('token');
+                        throw new Error('Session expired. Please log in again');
+                    }
+                    throw new Error('Failed to fetch user info');
+                }
+                const data = await response.json();
+                setUserInfo(data);
+            } catch (error) {
+                console.error('Error fetching user info:', error);
+            }
         };
 
         if (auth) {
             fetchUserInfo();
         }
 
-    }, [auth]);
+    }, [auth, setAuth]);
+
+    if (!auth) {
+        return <div>Please log in to use this page.</div>
+    }
 
     return (
         <div>
             <h2>Welcome, {auth?.username}!</h2>
             <p> You have successfully logged in.</p>
             <Stack spacing={2} direction="row">
-                <ProjectTable 
-                projects={projects}
-                onAddProject={addNewProject}/>
+                <ProjectTable user={auth?.username}/>
                 <HWTable />
             </Stack>
         </div>

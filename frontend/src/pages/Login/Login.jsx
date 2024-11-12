@@ -30,17 +30,19 @@ function Login() {
 
             const data = await response.json();
 
-            if (data.token) {
+            if (response.ok) {
                 setMessage(data.message);  // Login success message
 
                 // Store token and set authentication state
-                localStorage.setItem('token', data.token);
-                setAuth({ username });
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    setAuth({ username });
 
-                // Navigate to home page 
-                navigate('/home');
+                    // Navigate to home page 
+                    navigate('/home');
+                }                
             } else {
-                setMessage(data.message);  // Error message
+                setMessage(data.message || 'An error occurred');  // Error message
             }
         } catch (error) {
             setMessage('Error connecting to server');  // In case of network issues
@@ -64,7 +66,7 @@ function Login() {
                 <Typography component="h1" variant="h5">
                     Login
                 </Typography>
-                <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+                <Box component="form" onSubmit={(e) => handleSubmit(e, 'login')} sx={{ mt: 1 }}>
                     <TextField
                         margin="normal"
                         required
@@ -74,7 +76,7 @@ function Login() {
                         name="username"
                         autoComplete=""
                         value={username}
-                        variant="outlined"
+                        variant="standard"
                         onChange={(e) => setUsername(e.target.value)}
                     />
                     <TextField
@@ -86,30 +88,34 @@ function Login() {
                         type="password"
                         id="password"
                         autoComplete="current-password"
-                        variant="outlined"
+                        variant="standard"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
+                    <Typography color="error" component="h1" variant="body2">
+                    {message}
+                    </Typography>
                     <Button
+                        type="submit"
                         fullWidth
                         variant="contained"
+                        size="large"
+                        color="primary"
                         sx={{ mt: 3 }}
-                        onClick={(e) => handleSubmit(e, 'login')}
                     >
                         Log In
                     </Button>
                     <Button
                         fullWidth
                         variant="contained"
+                        size="large"
+                        color="secondary"
                         sx={{ mt: 3, mb: 2 }}
                         onClick={(e) => handleSubmit(e, 'register')}
                     >
                         Register
                     </Button>
                 </Box>
-                <Typography component="h1" variant="h5">
-                    {message}
-                </Typography>
             </Box>
         </Container>
     );

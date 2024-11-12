@@ -1,20 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField } from '@mui/material';
+import { Button, TextField, Typography } from '@mui/material';
 import { StyledTableCell, StyledTableRow } from './Home';
 import TableContainer from '@mui/material/TableContainer';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import Paper from '@mui/material/Paper';
-
-function createData(name, available, capacity) {
-    return { name, available, capacity };
-}
-
-const rows = [
-    createData('HWSet1', 100, 100),
-    createData('HWSet2', 100, 100),
-    createData('HWSet3', 100, 100)
-];
 
 const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
     const [inputAmount, setInputAmount] = useState('');
@@ -87,14 +77,12 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
 }
 
 function HWTable() { 
-    const [hardwareSets, setHardwareSets] = useState(rows);
+    const [hardwareSets, setHardwareSets] = useState(null);
     // Retrieve the token from local storage or AuthContext if available
 
     useEffect(() => {
-      
         fetch('http://localhost:5000/hardware', {
             headers: {
-            
                 'Content-Type': 'application/json',
             },
         })
@@ -105,8 +93,6 @@ function HWTable() {
           .then((data) => setHardwareSets(data.hardwareSets))
           .catch((error) => console.error('Error fetching hardware sets:', error));
     }, []);
-    
-    
 
     const handleCheckIn = (name, amount) => {
         fetch('http://localhost:5000/hardware/checkin', {
@@ -161,14 +147,17 @@ function HWTable() {
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 700 }} aria-label="customized table">
             <TableBody>
-                {hardwareSets.map((row) => (
+                {hardwareSets && hardwareSets.length > 0 ? (
+                    hardwareSets.map((row) => (
                     <HWTableRow 
                         key={row.name}
                         row={row}
                         onCheckOut={handleCheckOut}
                         onCheckIn={handleCheckIn}
                     />
-                ))}
+                ))) : (
+                    <Typography>No hardware sets available</Typography>
+                )}
             </TableBody>
           </Table>
         </TableContainer>
