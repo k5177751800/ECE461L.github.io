@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Button, TextField, Typography, Stack, StepButton } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Button, TextField, Typography } from '@mui/material';
 import { StyledTableCell, StyledTableRow } from './Home';
 import TableContainer from '@mui/material/TableContainer';
 import Table from '@mui/material/Table';
@@ -7,11 +7,16 @@ import TableBody from '@mui/material/TableBody';
 import TableHead from '@mui/material/TableHead';
 import Paper from '@mui/material/Paper';
 
-const MemberButton = ({ projectId }) => {
-    const [isMember, setIsMember] = useState(false);
+const MemberButton = React.memo(({ projectId, joined, user, onToggle }) => {
+    const [isMember, setIsMember] = useState(joined);
 
-    const handleMemberToggle= () => {
-        setIsMember(!isMember);
+    const handleMemberToggle = async () => {
+        try {
+            await onToggle(projectId, isMember);
+            setIsMember(!isMember);
+        } catch (error) {
+            console.error('Error toggling project: ', error);
+        }
     };
 
     return (
@@ -22,9 +27,9 @@ const MemberButton = ({ projectId }) => {
             {isMember ? "Leave Project" : "Join Project"}
         </Button>
     );
-};
+});
 
-const ProjectRow = ({ row }) => {
+const ProjectRow = React.memo(({ row, user, onToggle }) => {
     return (
         <StyledTableRow>
             <StyledTableCell component="th" scope="row">
@@ -42,14 +47,13 @@ const ProjectRow = ({ row }) => {
                 {row.description || 'N/A'}
             </StyledTableCell>
             <StyledTableCell align="center">
-                <MemberButton projectId={row.id}/>
+                <MemberButton projectId={row.id} joined={row.joined} user={user} onToggle={onToggle} />
             </StyledTableCell>
         </StyledTableRow>
     );
-};
+});
 
-const ProjectTable = ({ user }) => {
-    const [projects, setProjects] = useState([]);
+const ProjectTable = ({ user, projects, updateProjects }) => {
     const [newProjectName, setNewProjectName] = useState("");
     const [newProjectDescription, setNewProjectDescription] = useState("")
     const [projectErrorMessage, setProjectErrorMessage] = useState("");
@@ -61,21 +65,22 @@ const ProjectTable = ({ user }) => {
                 if (!response.ok) throw new Error('Network response was not OK');
                 const data = await response.json();
                 if (Array.isArray(data.projects)) {
-                    setProjects(data.projects);
+                    updateProjects(data.projects);
                 } else {
                     throw new Error("Error fetching projects");
                 }
             } catch (error) {
                 console.error('Error fetching projects:', error);
             setProjectErrorMessage("Error fetching projects");
-            setProjects([]);
+            updateProjects([]);
             }
         };
 
         if (user) {
             fetchProjects();
         }
-    }, [user]);
+
+    }, [user, updateProjects]);
 
     const onAddProject = async () => {
         try {
@@ -91,7 +96,7 @@ const ProjectTable = ({ user }) => {
             });
             if (!response.ok) throw new Error('Network response was not OK');
             const data = await response.json();
-            setProjects(data.projects);
+            updateProjects(data.projects);
             setProjectErrorMessage("Project added successfully");
             setNewProjectName("");
             setNewProjectDescription("");
@@ -100,6 +105,30 @@ const ProjectTable = ({ user }) => {
             setProjectErrorMessage('Unable to add project');
         }
     };
+
+    const onToggleProject = useCallback(async (projectId, newStatus) => {
+        try {
+            const response = await fetch('http://localhost:5000/projects/toggleproject', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    projectid: projectId, 
+                    user: user
+                })
+            });
+            if (!response.ok) throw new Error('Failed to toggle project');
+            const data = await response.json();
+            updateProjects(prevProjects => prevProjects.map(
+                project => project.id === projectId ? {...project, joined: newStatus} : project
+            ));
+            return data.new_status;
+        } catch (error) {
+            console.error('Error toggling project: ', error);
+            throw error;
+        }
+    }, [user, updateProjects]);
 
     return (
         <TableContainer component={Paper}>
@@ -119,6 +148,8 @@ const ProjectTable = ({ user }) => {
                     <ProjectRow 
                         key={row.id}
                         row={row}
+                        user={user}
+                        onToggle={onToggleProject}
                     />
                 ))) : (
                     <StyledTableRow colSpan={5}>

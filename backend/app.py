@@ -222,6 +222,24 @@ def add_project():
         print(f"Error updating projects: {e}")
         return jsonify({"projects": [], "error": "Failed to update projects"}), 500
 
+@app.route('/projects/toggleproject', methods=['POST'])
+def toggle_project():
+    data = request.json
+    user = data.get("user")
+    project_id = data.get("projectid")
+    curr_status = projects_collection.find_one({"id": project_id})["joined"]
+
+    try:
+        result = projects_collection.find_one_and_update(
+            {"id": project_id},
+            {"$set": {"joined": not curr_status}})
+        projects = list(projects_collection.find({"user": user}, {"_id": 0}))
+        if result:
+            return jsonify({"new_status": curr_status}), 200
+    except Exception as e:
+        print(f"Error toggling project status: {e}")
+        return jsonify({"projects": [], "error": "Failed to update projects"}), 500
+
 # protected route for user info
 @app.route('/home/user', methods=['GET'])
 @jwt_required()

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, TextField, Typography } from '@mui/material';
+import { Button, FormControl, InputLabel, TextField, Typography, Select } from '@mui/material';
 import { StyledTableCell, StyledTableRow } from './Home';
 import TableContainer from '@mui/material/TableContainer';
 import Table from '@mui/material/Table';
@@ -33,6 +33,10 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
         }   
     }
 
+    const selectProject = (e) => {
+
+    }
+
     return (
         <StyledTableRow>
             <StyledTableCell component="th" scope="row">
@@ -51,7 +55,15 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
                     onChange={handleInputChange}
                 />
             </StyledTableCell>
-            <StyledTableCell align="right">
+            <StyledTableCell>
+                <FormControl variant="standard" sx={{ m: 1, minWidth: 120 }}>
+                    <InputLabel>Select Project</InputLabel>
+                    <Select>
+
+                    </Select>
+                </FormControl>
+            </StyledTableCell>
+            <StyledTableCell align="center">
                 <Button 
                     variant="contained" 
                     color="primary"
@@ -62,6 +74,8 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut }) => {
                 >
                     Check Out
                 </Button>
+            </StyledTableCell>
+            <StyledTableCell>
                 <Button 
                     variant="outlined" 
                     color="secondary"
@@ -142,6 +156,10 @@ function HWTable() {
           })
           .catch((error) => console.error('Check-out error:', error));
       };
+
+    const handleProjectSelect = (hwId, projectId) => {
+        
+    }
 
     return (
         <TableContainer component={Paper}>

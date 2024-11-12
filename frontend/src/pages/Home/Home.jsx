@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, React } from 'react';
 import { useAuth } from '../../AuthContext';
 import TableCell, { tableCellClasses } from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
@@ -32,6 +32,11 @@ export const StyledTableRow = styled(TableRow)(({ theme }) => ({
 function Home() {
     const { auth, setAuth } = useAuth();
     const [userInfo, setUserInfo] = useState(null);
+    const [projects, setProjects] = useState([]);
+
+    const updateProjects = useCallback((newProjects) => {
+        setProjects(newProjects);
+    }, []);
 
     useEffect(() => {
         const fetchUserInfo = async () => {
@@ -55,8 +60,20 @@ function Home() {
             }
         };
 
+        const fetchProjects = async () => {
+            try {
+                const response = await fetch(`http://localhost/projects/${auth.username}`);
+                if (!response.ok) throw new Error('Failed to fetch projects');
+                const data = await response.json();
+                setProjects(data.projects);
+            } catch (error) {
+                console.error('Error fetching projects:', error);
+            }
+        }
+
         if (auth) {
             fetchUserInfo();
+            fetchProjects();
         }
 
     }, [auth, setAuth]);
@@ -65,12 +82,21 @@ function Home() {
         return <div>Please log in to use this page.</div>
     }
 
+    // const MemoizedProjectTable = React.memo(ProjectTable);
+
     return (
         <div>
             <h2>Welcome, {auth?.username}!</h2>
             <p> You have successfully logged in.</p>
-            <Stack spacing={2} direction="row">
-                <ProjectTable user={auth?.username}/>
+            <Stack 
+                spacing={2} 
+                direction="row"
+                useFlexGap
+            >
+                <ProjectTable 
+                    user={auth?.username} 
+                    projects={projects} 
+                    updateProjects={updateProjects}/>
                 <HWTable />
             </Stack>
         </div>
