@@ -14,13 +14,20 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut, projects }) => {
         setInputAmount(e.target.value);
     };
 
+    const extractProjectId = (selectedProject) => {
+        const parts = selectedProject.split(':');
+        return parts[parts.length - 1].trim();
+    };
+
     // Handle check in event
     const handleCheckIn = (e) => {
         e.preventDefault();
         const amount = parseInt(inputAmount);
-        if (!isNaN(amount) && amount > 0) {
-            onCheckIn(row.name, amount, selectedProject);
+        const projectId = extractProjectId(selectedProject);
+        if (!isNaN(amount) && projectId && amount > 0) {
+            onCheckIn(row.name, amount, projectId);
             setInputAmount('');
+            setSelectedProject('');
         }
     };
 
@@ -28,9 +35,11 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut, projects }) => {
     const handleCheckOut = (e) => {
         e.preventDefault();
         const amount = parseInt(inputAmount);
-        if (!isNaN(amount) && amount > 0 && amount <= row.available) {
-            onCheckOut(row.name, amount, selectedProject);
+        const projectId = extractProjectId(selectedProject);
+        if (!isNaN(amount) && projectId && amount > 0 && amount <= row.available) {
+            onCheckOut(row.name, amount, projectId);
             setInputAmount('');
+            setSelectedProject('');
         }   
     }
 
@@ -64,7 +73,7 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut, projects }) => {
                         onChange={handleProjectChange}
                     >
                         {projects.map((project) => (
-                            <MenuItem key={project.id} value={project.id}>{project.id}</MenuItem>
+                            <MenuItem key={project.id} value={project.id}>{project.name}: {project.id}</MenuItem>
                         ))}
                     </Select>
                 </FormControl>
@@ -75,7 +84,7 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut, projects }) => {
                     color="primary"
                     size="small"
                     onClick={handleCheckOut}
-                    disabled={!inputAmount || inputAmount <= 0 || inputAmount > row.available}
+                    disabled={!inputAmount || !selectedProject || inputAmount <= 0 || inputAmount > row.available}
                     sx={{ mr: 1 }}
                 >
                     Check Out
@@ -87,7 +96,7 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut, projects }) => {
                     color="secondary"
                     size="small"
                     onClick={handleCheckIn}
-                    disabled={!inputAmount || inputAmount <= 0 || row.available + parseInt(inputAmount) > row.capacity}
+                    disabled={!inputAmount || !selectedProject || inputAmount <= 0 || row.available + parseInt(inputAmount) > row.capacity}
                 >
                     Check In
                 </Button>
@@ -96,7 +105,7 @@ const HWTableRow = ({ row, onCheckIn, onCheckOut, projects }) => {
     );
 }
 
-function HWTable({ projects, user }) { 
+function HWTable({ projects, user, setProjects }) { 
     const [hardwareSets, setHardwareSets] = useState(null);
     
     useEffect(() => {
@@ -119,7 +128,7 @@ function HWTable({ projects, user }) {
           headers: { 
               'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name, amount }),
+          body: JSON.stringify({ name, amount, projectId }),
         })
           .then((response) => {
             if (!response.ok) {
@@ -133,7 +142,13 @@ function HWTable({ projects, user }) {
                 set.name === name ? { ...set, available: data.available } : set
               )
             );
-            console.log(data);
+            setProjects((prevProjects) =>
+                prevProjects.map((project) =>
+                project.id === projectId ? {...project, hardware: {
+                    ...project.hardware,
+                    [name]: Math.max((project.hardware[name] || 0) - amount)
+                }} : project
+            ));
           })
           .catch((error) => console.error('Check-in error:', error));
       };
@@ -144,7 +159,7 @@ function HWTable({ projects, user }) {
           headers: { 
               'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name, amount }),
+          body: JSON.stringify({ name, amount, projectId }),
         })
           .then((response) => {
             if (!response.ok) {
@@ -156,8 +171,14 @@ function HWTable({ projects, user }) {
             setHardwareSets((prevSets) =>
               prevSets.map((set) =>
                 set.name === name ? { ...set, available: data.available } : set
-              )
-            );
+              ));
+            setProjects((prevProjects) =>
+                prevProjects.map((project) =>
+                project.id === projectId ? {...project, hardware: {
+                    ...project.hardware,
+                    [name]: data.checked_out
+                }} : project
+                ));
           })
           .catch((error) => console.error('Check-out error:', error));
       };

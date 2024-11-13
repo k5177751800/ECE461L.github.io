@@ -61,21 +61,9 @@ function Home() {
                 console.error('Error fetching user info:', error);
             }
         };
-
-        const fetchProjects = async () => {
-            try {
-                const response = await fetch(`http://localhost/projects/${auth.username}`);
-                if (!response.ok) throw new Error('Failed to fetch projects');
-                const data = await response.json();
-                setProjects(data.projects);
-            } catch (error) {
-                console.error('Error fetching projects:', error);
-            }
-        }
-
+        
         if (auth) {
             fetchUserInfo();
-            fetchProjects();
         }
 
     }, [auth, setAuth]);
@@ -87,7 +75,12 @@ function Home() {
     };
 
     if (!auth) {
-        return <div>Please log in to use this page.</div>
+        return <div>
+            <Box style={{ position: 'absolute', top: 16, right: 16, color: 'white' }}>
+            <Button variant="contained" color="error" onClick={handleLogout} >Log in</Button>
+            </Box>
+            Please log in to use this page.
+            </div>
     }
 
     return (
@@ -134,7 +127,7 @@ function Home() {
             </Modal>
             <Stack spacing={2} direction="row" useFlexGap>
                 <ProjectTable user={auth?.username} projects={projects} updateProjects={updateProjects} />
-                <HWTable user={auth?.username} projects={projects} />
+                <HWTable user={auth?.username} projects={projects} setProjects={setProjects} />
             </Stack>
         </div>
     );

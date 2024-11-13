@@ -7,47 +7,33 @@ import TableBody from '@mui/material/TableBody';
 import TableHead from '@mui/material/TableHead';
 import Paper from '@mui/material/Paper';
 
-const MemberButton = React.memo(({ projectId, joined, onToggle }) => {
-    const [isMember, setIsMember] = useState(joined);
-
-    const handleMemberToggle = async () => {
-        try {
-            await onToggle(projectId, isMember);
-            setIsMember(!isMember);
-        } catch (error) {
-            console.error('Error toggling project: ', error);
-        }
+const ProjectRow = React.memo(({ row }) => {
+    const isAllHardwareZero = (hardware) => {
+        return Object.values(hardware).every(amount => amount === 0);
     };
 
-    return (
-        <Button
-            onClick={handleMemberToggle}
-            variant={isMember ? "outlined" : "contained"}
-            color={isMember ? "secondary" : "primary"}>
-            {isMember ? "Leave Project" : "Join Project"}
-        </Button>
-    );
-});
-
-const ProjectRow = React.memo(({ row, user, onToggle }) => {
     return (
         <StyledTableRow>
             <StyledTableCell component="th" scope="row">
                 {row.name || 'N/A'}
             </StyledTableCell>
-            <StyledTableCell align="right">
+            <StyledTableCell>
                 {row.id || 'N/A'}
             </StyledTableCell>
-            <StyledTableCell align="right">
-                {row.hardware && Object.entries(row.hardware).map(([set, amount]) => (
+            <StyledTableCell>
+                {row.hardware && Object.keys(row.hardware).length > 0 && !isAllHardwareZero(row.hardware) ? 
+                (Object.entries(row.hardware).filter(([_, amount]) => amount > 0)
+                .map(([set, amount]) => (
                     <div key={set}>{set}: {amount}</div>
-                ))}
+                ))) : (
+                    'No hardware assigned'
+                )}
             </StyledTableCell>
             <StyledTableCell>
                 {row.description || 'N/A'}
             </StyledTableCell>
-            <StyledTableCell align="center">
-                <MemberButton projectId={row.id} joined={row.joined} onToggle={onToggle} />
+            <StyledTableCell>
+                {Array.isArray(row.users) ? row.users.join(', ') : row.users || 'N/A'}
             </StyledTableCell>
         </StyledTableRow>
     );
@@ -106,30 +92,6 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
         }
     };
 
-    const onToggleProject = useCallback(async (projectId, newStatus) => {
-        try {
-            const response = await fetch('http://localhost:5000/projects/toggleproject', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    projectid: projectId, 
-                    user: user
-                })
-            });
-            if (!response.ok) throw new Error('Failed to toggle project');
-            const data = await response.json();
-            updateProjects(prevProjects => prevProjects.map(
-                project => project.id === projectId ? {...project, joined: newStatus} : project
-            ));
-            return data.new_status;
-        } catch (error) {
-            console.error('Error toggling project: ', error);
-            throw error;
-        }
-    }, [user, updateProjects]);
-
     return (
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 700 }} aria-label="project table">
@@ -139,7 +101,7 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
                     <StyledTableCell>Project ID</StyledTableCell>
                     <StyledTableCell>Hardware</StyledTableCell>
                     <StyledTableCell>Description</StyledTableCell>
-                    <StyledTableCell>Actions</StyledTableCell>
+                    <StyledTableCell>Authorized Users</StyledTableCell>
                 </StyledTableRow>
             </TableHead>
             <TableBody>
@@ -148,12 +110,12 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
                     <ProjectRow 
                         key={row.id}
                         row={row}
-                        user={user}
-                        onToggle={onToggleProject}
                     />
                 ))) : (
-                    <StyledTableRow colSpan={5}>
-                        <Typography>No projects available</Typography>
+                    <StyledTableRow>
+                        <StyledTableCell colspan={5} align="center" >
+                            <Typography>No projects available</Typography>
+                        </StyledTableCell>
                     </StyledTableRow>
                 )}
                 <StyledTableRow>

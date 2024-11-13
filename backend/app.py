@@ -122,6 +122,7 @@ def check_in():
     data = request.json
     hwset_name = data.get('name')
     amount = data.get('amount')
+    projectid = data.get('projectId')
     hw_set = db['HardwareSets'].find_one({"name": hwset_name})
 
     if hwset_name and amount:
@@ -132,13 +133,25 @@ def check_in():
         # calculate new available amount, making sure to not exceed capacity
         new_available = min(current_available + amount, max_capacity)
 
-        result = db.HardwareSets.find_one_and_update(
+        update_hardware_result = db.HardwareSets.find_one_and_update(
             {"name": hwset_name},
             {"$set": {"available": new_available}},
             return_document=True
         )
-        if result:
-            return jsonify({"message": "Check-in successful", "available": result["available"]}), 200
+
+        update_project_result = projects_collection.find_one_and_update(
+            {"id": projectid},
+            {
+                "$inc": {f"hardware.{hwset_name}": -amount}
+            }
+        )
+
+        if update_project_result and update_hardware_result:
+            return jsonify({
+                "message": "Check-in successful", 
+                "available": update_hardware_result["available"],
+                "checked_out": max(0, update_project_result["hardware"].get(hwset_name, 0))
+                }), 200
     return jsonify({"message": "Check-in failed"}), 400
 
 
@@ -156,16 +169,31 @@ def check_out():
     data = request.json
     hwset_name = data.get('name')
     amount = data.get('amount')
+    projectid = data.get('projectId')
 
     if hwset_name and amount:
         # Ensure enough quantity is available
-        result = db.HardwareSets.find_one_and_update(
+        update_hardware_result = db.HardwareSets.find_one_and_update(
             {"name": hwset_name, "available": {"$gte": amount}},
             {"$inc": {"available": -amount}},
             return_document=True
         )
-        if result:
-            return jsonify({"message": "Check-out successful", "available": result["available"]}), 200
+
+        # add quantity to project list
+        update_project_result = projects_collection.find_one_and_update(
+            {"id": projectid},
+            {
+                "$inc": {f"hardware.{hwset_name}": amount}
+            },
+            return_document=True
+        )
+
+        if update_hardware_result and update_project_result:
+            return jsonify({
+                "message": "Check-out successful", 
+                "available": update_hardware_result["available"],
+                "checked_out": update_project_result["hardware"].get(hwset_name, 0)
+                }), 200
     return jsonify({"message": "Check-out failed"}), 400
 
 # retrieve hardware set from database
@@ -182,7 +210,12 @@ def get_hardware_sets():
 @app.route('/projects/<string:user_id>', methods=['GET'])
 def get_projects(user_id):
     try:
-        projects = list(projects_collection.find({"user": user_id}, {"_id": 0} ))
+        projects = list(projects_collection.find({"users": user_id}, {"_id": 0} ))
+
+        # remove projects with 0 hardware allocated
+        for project in projects:
+            project['hardware'] = {k: v for k, v in project['hardware'].items() if v > 0}
+
         return jsonify({"projects": projects}), 200
     except Exception as e:
         print(f"Error retrieving projects: {e}")
@@ -200,7 +233,7 @@ def add_project():
 
         new_project = {
             "name": project_name,
-            "user": user,
+            "users": [user],
             "description": description,
             "hardware": {},
             "id": f"{user}_{curr_numprojects + 1}",
@@ -215,7 +248,7 @@ def add_project():
             {"username": user},
             {"$set": {"num_projects": curr_numprojects + 1}}
         )
-        projects = list(projects_collection.find({"user": user}, {"_id": 0} ))
+        projects = list(projects_collection.find({"users": user}, {"_id": 0} ))
 
         return jsonify({"projects": projects}), 200
     except Exception as e:
@@ -245,12 +278,8 @@ def toggle_project():
 @jwt_required()
 def get_user():
     try:
-        current_user_id = get_jwt_identity()
-
-        if not ObjectId.is_valid(current_user_id):
-            return jsonify({"message": "Invalid user ID"}), 400
-        
-        user = users_collection.find_one({"_id": ObjectId(current_user_id)})
+        current_username = get_jwt_identity()
+        user = users_collection.find_one({"username": current_username})
         
         if user:
             return jsonify({
