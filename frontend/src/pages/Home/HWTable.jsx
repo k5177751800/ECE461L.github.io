@@ -109,7 +109,7 @@ function HWTable({ projects, user, setProjects }) {
     const [hardwareSets, setHardwareSets] = useState(null);
     
     useEffect(() => {
-        fetch('http://localhost:5000/hardware', {
+        fetch('http://127.0.0.1:5000/hardware', {
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -123,7 +123,7 @@ function HWTable({ projects, user, setProjects }) {
     }, []);
 
     const handleCheckIn = (name, amount, projectId) => {
-        fetch('http://localhost:5000/hardware/checkin', {
+        fetch('http://127.0.0.1:5000/hardware/checkin', {
           method: 'POST',
           headers: { 
               'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ function HWTable({ projects, user, setProjects }) {
       };
 
     const handleCheckOut = (name, amount, projectId) => {
-        fetch('http://localhost:5000/hardware/checkout', {
+        fetch('http://127.0.0.1:5000/hardware/checkout', {
           method: 'POST',
           headers: { 
               'Content-Type': 'application/json',

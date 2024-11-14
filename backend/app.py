@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
 from werkzeug.security import check_password_hash, generate_password_hash
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+import certifi
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -22,7 +24,7 @@ uri = "mongodb+srv://albertbw011:608OWGVxf3weg5qD@cluster0.tubyi.mongodb.net/"
 # MongoDB password (hidden for security reasons in real applications)
 
 # Create a new MongoDB client for remote connection
-client = MongoClient(uri, server_api=ServerApi('1'))
+client = MongoClient(uri, tlsCAFile=certifi.where())
 db = client['HaaS']
 users_collection = db['Users']  # Collection for user data
 hardware_sets_collection = db['HardwareSets']  # Collection for hardware sets
@@ -35,10 +37,16 @@ jwt = JWTManager(app)
 @app.before_request
 def handle_options_requests():
     if request.method == 'OPTIONS':
-        return jsonify({"message": "CORS preflight success"}), 200
+        response = jsonify({"message": "CORS preflight success"})
+        response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
+        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        return response, 200
 
 # Root endpoint to confirm the server is running
 @app.route('/')
+@cross_origin()
 def index():
     return "Welcome to the Flask server!"
 
@@ -46,8 +54,12 @@ def index():
 @app.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     if request.method == 'OPTIONS':
-        # CORS preflight response
-        return jsonify({"message": "CORS preflight success"}), 200
+        response = jsonify({"message": "CORS preflight success"})
+        response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        return response, 200
 
     # POST request for user login
     data = request.json
@@ -70,6 +82,7 @@ def login():
 
 # User registration endpoint
 @app.route('/register', methods=['POST'])
+@cross_origin(origin='*')
 def register():
     data = request.json
     username = data.get('username')

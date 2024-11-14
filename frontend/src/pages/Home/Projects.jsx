@@ -61,7 +61,7 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
     useEffect(() => {
         const fetchProjects = async () => {
             try {
-                const response = await fetch(`http://localhost:5000/projects/${user}`);
+                const response = await fetch(`http://127.0.0.1:5000/projects/${user}`);
                 if (!response.ok) throw new Error('Network response was not OK');
                 const data = await response.json();
                 if (Array.isArray(data.projects)) {
@@ -85,7 +85,7 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
     // to add a new project to the user's account
     const onAddProject = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/projects/addproject`, {
+            const response = await fetch(`http://127.0.0.1:5000/projects/addproject`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -111,7 +111,7 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
     // to toggle join/leave status for a project
     const toggleProject = async (projectId) => {
         try {
-            const response = await fetch(`http://localhost:5000/projects/toggleproject`, {
+            const response = await fetch(`http://127.0.0.1:5000/projects/toggleproject`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
