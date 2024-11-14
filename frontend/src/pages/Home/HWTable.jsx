@@ -132,6 +132,7 @@ function HWTable({ projects, user, setProjects }) {
         })
           .then((response) => {
             if (!response.ok) {
+                console.log(response);
                 throw new Error('Check-in failed');
             }
             return response.json();

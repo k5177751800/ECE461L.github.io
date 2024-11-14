@@ -56,6 +56,7 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
     const [newProjectName, setNewProjectName] = useState("");
     const [newProjectDescription, setNewProjectDescription] = useState("");
     const [projectErrorMessage, setProjectErrorMessage] = useState("");
+    const [joinProjectId, setJoinProjectId] = useState(""); 
 
     // Fetch the list of projects on component mount
     useEffect(() => {
@@ -134,6 +135,15 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
         }
     };
 
+    const onJoinProject = () => {
+        if (joinProjectId) {
+            toggleProject(joinProjectId);
+            setJoinProjectId("");
+        } else {
+            setProjectErrorMessage("Please enter a valid project ID to join.");
+        }
+    };
+
     return (
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 700 }} aria-label="project table">
@@ -184,6 +194,26 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
                             variant="contained"
                             onClick={onAddProject}>
                             Create New Project
+                        </Button>
+                    </StyledTableCell>
+                </StyledTableRow>
+                <StyledTableRow>
+                    <StyledTableCell colSpan={4}>
+                        <TextField
+                            label="Project ID"
+                            variant="outlined"
+                            value={joinProjectId}
+                            onChange={(e) => setJoinProjectId(e.target.value)}
+                            fullWidth
+                        />
+                    </StyledTableCell>
+                    <StyledTableCell colSpan={2}>
+                        <Button
+                            sx={{ mt: 1 }}
+                            variant="contained"
+                            color="primary"
+                            onClick={onJoinProject}>
+                            Join Project
                         </Button>
                     </StyledTableCell>
                 </StyledTableRow>

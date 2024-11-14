@@ -121,6 +121,13 @@ def check_in():
     hwset_name = data.get('name')
     amount = data.get('amount')
     projectid = data.get('projectId')
+    # available_hardware = projectid and projects_collection.find_one({"id": projectid})["hardware"]
+    # if available_hardware and hwset_name in available_hardware:
+    #     hwset_numer = available_hardware[hwset_name]
+    #     if hwset_numer < amount:
+    #         return jsonify({"message": "Check-in failed: not enough hardware available"}), 400
+    # else:
+    #     return jsonify({"message": "Check-in failed: hardware set not found"}), 400
     hw_set = hardware_sets_collection.find_one({"name": hwset_name})
 
     if hwset_name and amount:
@@ -140,8 +147,16 @@ def check_in():
         # Update project hardware allocation
         update_project_result = projects_collection.find_one_and_update(
             {"id": projectid},
-            {"$inc": {f"hardware.{hwset_name}": -amount}}
+            {"$inc": {f"hardware.{hwset_name}": -amount}},
+            return_document=True  # Return the updated document
         )
+
+        # Check if the remaining number is 0 and remove the hwset_name if it is
+        if update_project_result and update_project_result["hardware"].get(hwset_name) == 0:
+            projects_collection.update_one(
+                {"id": projectid},
+                {"$unset": {f"hardware.{hwset_name}": ""}}
+            )
 
         if update_project_result and update_hardware_result:
             return jsonify({
@@ -154,6 +169,7 @@ def check_in():
 # Endpoint for hardware check-out
 @app.route('/hardware/checkout', methods=['POST', 'OPTIONS'])
 def check_out():
+    
     if request.method == 'OPTIONS':
         # CORS preflight response
         response = jsonify({"message": "CORS preflight success"})

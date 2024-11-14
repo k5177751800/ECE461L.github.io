@@ -145,12 +145,12 @@ function Home() {
       </Modal>
       <Stack spacing={2} direction="row" useFlexGap>
         <ProjectTable
-          user={auth?.username}
+          user={userInfo?.username}
           projects={projects}
           updateProjects={updateProjects}
         />
         <HWTable
-          user={auth?.username}
+          user={userInfo?.username}
           projects={projects}
           setProjects={setProjects}
         />
