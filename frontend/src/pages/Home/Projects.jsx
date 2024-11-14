@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, TextField, Typography } from '@mui/material';
 import { StyledTableCell, StyledTableRow } from './Home';
 import TableContainer from '@mui/material/TableContainer';
@@ -7,7 +7,9 @@ import TableBody from '@mui/material/TableBody';
 import TableHead from '@mui/material/TableHead';
 import Paper from '@mui/material/Paper';
 
-const ProjectRow = React.memo(({ row }) => {
+// renders each row of the project table
+const ProjectRow = React.memo(({ row, user, toggleProject }) => {
+    // Helper function to check if all hardware quantities are zero
     const isAllHardwareZero = (hardware) => {
         return Object.values(hardware).every(amount => amount === 0);
     };
@@ -35,15 +37,27 @@ const ProjectRow = React.memo(({ row }) => {
             <StyledTableCell>
                 {Array.isArray(row.users) ? row.users.join(', ') : row.users || 'N/A'}
             </StyledTableCell>
+            <StyledTableCell>
+                {/* Button to join or leave the project */}
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => toggleProject(row.id)}
+                >
+                    {row.users && row.users.includes(user) ? "Leave Project" : "Join Project"}
+                </Button>
+            </StyledTableCell>
         </StyledTableRow>
     );
 });
 
+// Main ProjectTable component displays all projects and allows joining/leaving and creating new projects
 const ProjectTable = ({ user, projects, updateProjects }) => {
     const [newProjectName, setNewProjectName] = useState("");
-    const [newProjectDescription, setNewProjectDescription] = useState("")
+    const [newProjectDescription, setNewProjectDescription] = useState("");
     const [projectErrorMessage, setProjectErrorMessage] = useState("");
 
+    // Fetch the list of projects on component mount
     useEffect(() => {
         const fetchProjects = async () => {
             try {
@@ -57,8 +71,8 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
                 }
             } catch (error) {
                 console.error('Error fetching projects:', error);
-            setProjectErrorMessage("Error fetching projects");
-            updateProjects([]);
+                setProjectErrorMessage("Error fetching projects");
+                updateProjects([]);
             }
         };
 
@@ -68,6 +82,7 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
 
     }, [user, updateProjects]);
 
+    // to add a new project to the user's account
     const onAddProject = async () => {
         try {
             const response = await fetch(`http://localhost:5000/projects/addproject`, {
@@ -78,7 +93,8 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
                 body: JSON.stringify({
                     name: newProjectName, 
                     user: user,
-                    description: newProjectDescription})
+                    description: newProjectDescription
+                })
             });
             if (!response.ok) throw new Error('Network response was not OK');
             const data = await response.json();
@@ -92,6 +108,32 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
         }
     };
 
+    // to toggle join/leave status for a project
+    const toggleProject = async (projectId) => {
+        try {
+            const response = await fetch(`http://localhost:5000/projects/toggleproject`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ projectid: projectId, user })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setProjectErrorMessage(data.message); // Display success or leave message to user
+                // Update the projects list with the response
+                updateProjects(data.projects);
+            } else {
+                setProjectErrorMessage(data.error || "Unable to toggle project status");
+            }
+        } catch (error) {
+            console.error('Error toggling project status:', error);
+            setProjectErrorMessage("Error toggling project status");
+        }
+    };
+
     return (
         <TableContainer component={Paper}>
           <Table sx={{ minWidth: 700 }} aria-label="project table">
@@ -102,6 +144,7 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
                     <StyledTableCell>Hardware</StyledTableCell>
                     <StyledTableCell>Description</StyledTableCell>
                     <StyledTableCell>Authorized Users</StyledTableCell>
+                    <StyledTableCell>Actions</StyledTableCell>
                 </StyledTableRow>
             </TableHead>
             <TableBody>
@@ -110,10 +153,12 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
                     <ProjectRow 
                         key={row.id}
                         row={row}
+                        user={user}
+                        toggleProject={toggleProject}
                     />
                 ))) : (
                     <StyledTableRow>
-                        <StyledTableCell colspan={5} align="center" >
+                        <StyledTableCell colSpan={6} align="center" >
                             <Typography>No projects available</Typography>
                         </StyledTableCell>
                     </StyledTableRow>
@@ -126,14 +171,14 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
                         value={newProjectName || ''}
                         onChange={(e) => setNewProjectName(e.target.value)} />
                     </StyledTableCell>
-                    <StyledTableCell colspan={2}>
+                    <StyledTableCell colSpan={2}>
                         <TextField 
                         label="Project Description" 
                         variant="outlined" 
                         value={newProjectDescription || ''}
                         onChange={(e) => setNewProjectDescription(e.target.value)} />
                     </StyledTableCell>
-                    <StyledTableCell>
+                    <StyledTableCell colSpan={2}>
                         <Button
                             sx={{ mt: 3 }}
                             variant="contained"
@@ -149,6 +194,6 @@ const ProjectTable = ({ user, projects, updateProjects }) => {
           </Typography>
         </TableContainer>
     );
-}
+};
 
 export default ProjectTable;
